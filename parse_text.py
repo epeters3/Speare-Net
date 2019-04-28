@@ -2,7 +2,7 @@ import json
 import numpy as np
 import pickle
 
-def make_codex(text_path, write_path="codex.json"):
+def make_codex(text_path="t8.shakespeare.txt", write_path="codex.json"):
     """
     Parses the file at `text_path`, finding all unique
     characters in the file, and encoding them in a vector.
@@ -13,7 +13,7 @@ def make_codex(text_path, write_path="codex.json"):
     codex = []
     char_cnt = 0
     token_cnt = 0
-    print("Encoding document: {}".format(text_path))
+    print("Encoding document: '{}'...".format(text_path))
     with open(text_path, 'r') as rf:
         for line in rf:
             for char in line:
@@ -23,14 +23,14 @@ def make_codex(text_path, write_path="codex.json"):
                     codex.append(char)
 
     with open(write_path, 'w') as wf:
-        print("Writing codex to document: {}".format(write_path))
+        print("Writing codex to document: '{}'...".format(write_path))
         json.dump({
             "char_cnt": char_cnt,
             "token_cnt": token_cnt,
             "codex": codex
         }, wf)
 
-def make_labels(codex_path, text_path, labels_path):
+def make_labels(codex_path="codex.json", text_path="t8.shakespeare.txt", labels_path="labels.pkl"):
     """
     Uses the codex at `codex_path` (stored as JSON), and
     the text at `text_path`, and builds a numpy array
@@ -38,7 +38,7 @@ def make_labels(codex_path, text_path, labels_path):
     the document. Can be used to make a one-hot matrix.
     """
     with open(codex_path, 'r') as rmf:
-        print("Reading codex data: {}".format(codex_path))
+        print("Reading codex data: '{}'...".format(codex_path))
         text_meta = json.load(rmf)
     char_cnt = text_meta['char_cnt']
     token_cnt = text_meta['token_cnt']
@@ -49,7 +49,7 @@ def make_labels(codex_path, text_path, labels_path):
     # Populate the labels
     char_idx = 0
     with open(text_path, 'r') as rtf:
-        print("Reading text file: {}".format(text_path))
+        print("Reading text file: '{}'...".format(text_path))
         for line in rtf:
             for char in line:
                 # Use the integer encoding of this char
@@ -59,12 +59,5 @@ def make_labels(codex_path, text_path, labels_path):
     
     # Write out the labels
     with open(labels_path, 'wb') as wf:
-        print(labels[0:40])
-        print("Writing labels data to: {}".format(labels_path))
+        print("Writing labels data to: '{}'...".format(labels_path))
         pickle.dump(labels, wf)
-
-if __name__ == "__main__":
-    text_path = "t8.shakespeare.txt"
-    codex_path = "codex.json"
-    # make_codex(text_path, codex_path)
-    make_labels(codex_path, text_path, "labels.pkl")
