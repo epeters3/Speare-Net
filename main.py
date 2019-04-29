@@ -4,6 +4,8 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 
 from parse_text import make_codex, make_labels
 
@@ -43,11 +45,36 @@ class SpeareNet(nn.Module):
 
     def __init__(self):
         super(SpeareNet, self).__init__()
-        # TODO
+        self.a_lstm = nn.LSTM(50, 120, num_layers=2)
+        self.b_dense = nn.Linear(120, 120)
+        self.c_dense = nn.Linear(120, 50)
     
-    def forward(self, X):
-        # TODO
-        pass
+    def forward(self, x):
+        h1 = F.relu(self.a_lstm(x))
+        h2 = F.relu(self.b_dense(h1))
+        return F.sigmoid(self.c_dense(h2))
+
+def train(data, *, epochs=100, checkpoint_every=10):
+    model = SpeareNet()
+    params = model.parameters()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(params)
+
+    for epoch_i in range(1, epochs+1):
+        # Prep
+        for data_i in range(data.size()[0]):
+            model.zero_grad()
+            inputs = None # TODO inputs
+            target = None # TODO targets
+
+            # Forward pass
+            outputs = model(inputs)
+
+            # Backpropagate
+            loss = criterion(outputs, target)
+            loss.backward()
+            optimizer.step()
 
 if __name__ == "__main__":
-    load()
+    data = load()
+    train(data)
