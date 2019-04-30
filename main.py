@@ -1,5 +1,6 @@
 import pickle
 import os
+import math
 
 import numpy as np
 import torch
@@ -43,37 +44,49 @@ def load(text_path="t8.shakespeare.txt", codex_path="codex.json", labels_path="l
 class SpeareNet(nn.Module):
     """A char-net"""
 
-    def __init__(self):
+    def __init__(self, in_size, h_size=120):
         super(SpeareNet, self).__init__()
-        self.a_lstm = nn.LSTM(50, 120, num_layers=2)
-        self.b_dense = nn.Linear(120, 120)
-        self.c_dense = nn.Linear(120, 50)
+        self.a_lstm = nn.LSTM(in_size, h_size, num_layers=2)
+        self.b_dense = nn.Linear(h_size, h_size)
+        self.c_dense = nn.Linear(h_size, in_size)
     
     def forward(self, x):
         h1 = F.relu(self.a_lstm(x))
         h2 = F.relu(self.b_dense(h1))
         return F.sigmoid(self.c_dense(h2))
 
-def train(data, *, epochs=100, checkpoint_every=10):
-    model = SpeareNet()
+def train(data, *, epochs=100, checkpoint_every=10, seq_size=50):
+    print(f"data.dtype: {data.dtype}")
+    n, c = data.size()
+    model = SpeareNet(c)
     params = model.parameters()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params)
 
+    num_iters = n - seq_size
+    best_loss = math.inf
     for epoch_i in range(1, epochs+1):
-        # Prep
-        for data_i in range(data.size()[0]):
+        target_i, outputs = None, None
+        sum_loss = 0.0
+        for data_i in range(num_iters):
+
+            target_i = data_i + seq_size
             model.zero_grad()
-            inputs = None # TODO inputs
-            target = None # TODO targets
 
-            # Forward pass
-            outputs = model(inputs)
+            for i in range(data_i, target_i):
+                # Forward pass through this character sequence
+                # of length `seq_size`.
+                outputs = model(data[i, :].view(1, 1, -1))
 
-            # Backpropagate
-            loss = criterion(outputs, target)
+            # Backpropagate through time. We are trying to
+            # predict the character right after the input sequence,
+            # the one-hot encoded character vector at `target_i`.
+            loss = criterion(outputs, data[target_i, :])
+            sum_loss += loss
             loss.backward()
             optimizer.step()
+
+        print(f"[{epoch_i}] ==> Avg. Loss: {sum_loss / num_iters}")
 
 if __name__ == "__main__":
     data = load()
