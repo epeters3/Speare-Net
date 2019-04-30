@@ -56,7 +56,7 @@ class SpeareNet(nn.Module):
     
     def forward(self, x):
         _, h1 = self.a_gru(x)
-        return F.softmax(self.b_dense(h1))
+        return F.softmax(self.b_dense(h1), dim=2)
 
 
 def train(data, *, epochs=100, checkpoint_every=100, seq_size=50):
@@ -98,6 +98,7 @@ def train(data, *, epochs=100, checkpoint_every=100, seq_size=50):
             optimizer.step()
 
             if data_i % checkpoint_every == 0:
+                print(f"outputs={outputs}\ntarget_label={target_label}")
                 print(f"loss={loss}")
 
         avg_loss = sum_loss / num_iters
