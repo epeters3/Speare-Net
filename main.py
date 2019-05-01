@@ -49,7 +49,7 @@ def load(text_path="t8.shakespeare.txt", codex_path="codex.json", labels_path="l
 class SpeareNet(nn.Module):
     """A char-net"""
 
-    def __init__(self, in_size, h_size=120):
+    def __init__(self, in_size, h_size=200):
         super(SpeareNet, self).__init__()
         self.a_gru = nn.GRU(in_size, h_size, num_layers=2)
         self.b_dense = nn.Linear(h_size, in_size)
@@ -59,8 +59,7 @@ class SpeareNet(nn.Module):
         return F.softmax(self.b_dense(h1), dim=2)
 
 
-def train(data, *, epochs=100, checkpoint_every=100, seq_size=50):
-    print(f"data.dtype: {data.dtype}")
+def train(data, *, epochs=100, report_every=100, seq_size=50, save_dir="checkpoints"):
     n, c = data.size()
     model = SpeareNet(c)
     if torch.cuda.is_available():
@@ -70,9 +69,9 @@ def train(data, *, epochs=100, checkpoint_every=100, seq_size=50):
     optimizer = optim.Adam(params, 1e-4)
 
     num_iters = n - seq_size
-    best_loss = math.inf
+    sum_loss = 0.0
     for epoch_i in range(1, epochs+1):
-        sum_loss = 0.0
+        iters_done = 0
         for data_i in range(num_iters):
 
             target_i = data_i + seq_size
@@ -87,28 +86,28 @@ def train(data, *, epochs=100, checkpoint_every=100, seq_size=50):
             # predict the character right after the input sequence,
             # the one-hot encoded character vector at `target_i`.
             target = data[target_i, :].view(1, -1).long()
-            # print(f"target={target.size()}\ntarget={target}")
             _, target_label = target.max(dim=1)
-            # print(f"target_label={target_label}")
             outputs = outputs.view(1, -1)
-            # print(f"outputs={outputs.size()}")
+
             loss = criterion(outputs, target_label)
             sum_loss += loss
             loss.backward()
             optimizer.step()
+            iters_done += 1
 
-            if data_i % checkpoint_every == 0:
-                print(f"outputs={outputs}\ntarget_label={target_label}")
-                print(f"loss={loss}")
+            if data_i % report_every == 0:
+                # print(f"outputs={outputs}\ntarget_label={target_label}")
+                avg_loss = sum_loss / report_every
+                sum_loss = 0.0
+                print(f"loss @[{round(iters_done/num_iters*100, 4)}%] = {avg_loss}")
 
-        avg_loss = sum_loss / num_iters
-        print(f"[{epoch_i}] ==> Avg. Loss: {avg_loss}")
-        if avg_loss < best_loss:
-            best_loss = avg_loss
+        # Checkpoint the model after each epoch
+        torch.save(model.state_dict(), f"{save_dir}/epoch_{epoch_i}.pt")
 
 
 if __name__ == "__main__":
     data = load()
-    train(data)
+    train(data, seq_size=20, report_every=500)
+
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
