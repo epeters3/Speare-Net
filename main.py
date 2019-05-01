@@ -59,7 +59,7 @@ class SpeareNet(nn.Module):
         return F.softmax(self.b_dense(h1), dim=2)
 
 
-def train(data, *, epochs=100, report_every=100, seq_size=50, save_dir="checkpoints"):
+def train(data, *, epochs=100, report_every=100, checkpoint_every=10, seq_size=50, save_dir="checkpoints"):
     n, c = data.size()
     model = SpeareNet(c)
     if torch.cuda.is_available():
@@ -101,8 +101,11 @@ def train(data, *, epochs=100, report_every=100, seq_size=50, save_dir="checkpoi
                 sum_loss = 0.0
                 print(f"loss @[{round(iters_done/num_iters*100, 4)}%] = {avg_loss}")
 
-        # Checkpoint the model after each epoch
-        torch.save(model.state_dict(), f"{save_dir}/epoch_{epoch_i}.pt")
+        # Checkpoint the model after `checkpoint_every` epochs
+        if epoch_i % checkpoint_every == 0:
+            if not os.path.isdir(save_dir):
+                os.mkdir(save_dir)
+            torch.save(model.state_dict(), f"{save_dir}/epoch_{epoch_i}.pt")
 
 
 if __name__ == "__main__":
