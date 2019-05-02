@@ -55,7 +55,7 @@ class SpeareNet(nn.Module):
         self.b_dense = nn.Linear(h_size, in_size)
     
     def forward(self, x):
-        _, h1 = self.a_gru(x)
+        h1, _ = self.a_gru(x)
         return F.softmax(self.b_dense(h1), dim=2)
 
 
@@ -70,6 +70,7 @@ def train(data, *, epochs=100, report_every=100, checkpoint_every=10, seq_size=5
 
     num_iters = n - seq_size
     sum_loss = 0.0
+    num_correct = 0.0
     for epoch_i in range(1, epochs+1):
         iters_done = 0
         for data_i in range(num_iters):
@@ -78,9 +79,10 @@ def train(data, *, epochs=100, report_every=100, checkpoint_every=10, seq_size=5
             model.zero_grad()
 
             # Forward pass through this character sequence
-            # of length `seq_size`.
-            inputs = data[data_i:target_i, :].view(seq_size, 1, -1)
-            outputs = model(inputs)
+            outputs = None
+            for seq_i in range(data_i, target_i):
+                inputs = data[seq_i, :].view(1, 1, -1)
+                outputs = model(inputs)
 
             # Backpropagate through time. We are trying to
             # predict the character right after the input sequence,
@@ -88,18 +90,27 @@ def train(data, *, epochs=100, report_every=100, checkpoint_every=10, seq_size=5
             target = data[target_i, :].view(1, -1).long()
             _, target_label = target.max(dim=1)
             outputs = outputs.view(1, -1)
+            _, output_label = outputs.max(dim=1)
+            if output_label == target_label:
+                num_correct += 1
 
             loss = criterion(outputs, target_label)
-            sum_loss += loss
             loss.backward()
             optimizer.step()
+            sum_loss += loss
             iters_done += 1
 
-            if data_i % report_every == 0:
-                # print(f"outputs={outputs}\ntarget_label={target_label}")
+            if iters_done % report_every == 0:
+                # print(f"outputs.size={outputs.size()} target.size={target.size()}\noutputs={outputs}\ntarget={target}\ntarget_label={target_label}")
                 avg_loss = sum_loss / report_every
+                avg_accuracy = num_correct / report_every
                 sum_loss = 0.0
-                print(f"loss @[{round(iters_done/num_iters*100, 4)}%] = {avg_loss}")
+                num_correct = 0.0
+                print(
+                    f"[{round(iters_done/num_iters*100, 4)}% of epoch {epoch_i}]:"
+                    f"\n\tavg_loss = {avg_loss}"
+                    f"\n\tavg_accuracy = {avg_accuracy}"
+                )
 
         # Checkpoint the model after `checkpoint_every` epochs
         if epoch_i % checkpoint_every == 0:
@@ -109,8 +120,8 @@ def train(data, *, epochs=100, report_every=100, checkpoint_every=10, seq_size=5
 
 
 if __name__ == "__main__":
-    data = load()
-    train(data, seq_size=20, report_every=500)
+    data = load(text_path="sixpence_small.txt", )
+    train(data, epochs=400, seq_size=20, report_every=170)
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
