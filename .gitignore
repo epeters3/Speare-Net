@@ -1,6 +1,10 @@
-*.pkl
-*.pickle
-*.json
+# Python cache files
 __pycache__
+
+# Data
+model_data/
+
+
+# IDE config
 .idea
-*.pt
+.vscode
