@@ -22,7 +22,8 @@ def train(
     h_size=100,
 ):
     dataloader = DataLoader(dataset, batch_size, shuffle=True)
-    num_seqs, cols = dataset.size()
+    num_batches = len(dataloader)
+    _, cols = dataset.size()
     model = SpeareNet(cols, h_size)
     if torch.cuda.is_available():
         model = model.cuda()
@@ -33,7 +34,7 @@ def train(
     sum_loss = 0.0
     num_correct = 0.0
 
-    print("Training...")
+    print(f"Training {num_batches} batches for {epochs} epochs...")
 
     for epoch_i in range(1, epochs + 1):
         batches_done = 0
@@ -74,7 +75,7 @@ def train(
                 sum_loss = 0.0
                 num_correct = 0.0
                 print(
-                    f"[{round(batches_done/num_seqs*100, 4)}% of epoch {epoch_i}]:"
+                    f"[{round(batches_done/num_batches*100, 4)}% of epoch {epoch_i}]:"
                     f"\n\tavg_loss = {avg_loss}"
                     f"\n\tavg_accuracy = {avg_accuracy}"
                     f"\n\toutput_chars={output_chars}"
