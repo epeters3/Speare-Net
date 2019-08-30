@@ -57,8 +57,6 @@ def train(
             _, output_labels = outputs.max(dim=1)
             # print(f"dims of output_labels: {output_labels.size()}")
             # print(f"output_labels: {output_labels}")
-            target_chars = [dataset.num_to_token[x] for x in target_labels.numpy()]
-            output_chars = [dataset.num_to_token[x] for x in output_labels.numpy()]
 
             num_correct += torch.sum(output_labels == target_labels)
 
@@ -70,6 +68,8 @@ def train(
             batches_done += 1
 
             if batches_done % report_every == 0:
+                target_chars = [dataset.num_to_token[x] for x in target_labels.cpu().numpy()]
+                output_chars = [dataset.num_to_token[x] for x in output_labels.cpu().numpy()]
                 avg_loss = sum_loss / report_every
                 avg_accuracy = num_correct // (report_every * batch_size)
                 sum_loss = 0.0

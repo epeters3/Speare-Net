@@ -49,5 +49,6 @@ def load_corpus(corpus_path):
         one_hots[i][token_to_num[token]] = 1
 
     if torch.cuda.is_available():
-        return one_hots.cuda()
+        one_hots = one_hots.cuda()
+        
     return one_hots, token_to_num, num_to_token, build_path
