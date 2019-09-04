@@ -26,7 +26,7 @@ class SpeareNet(nn.Module):
         # instances in the mini-batch, and the third indexes elements
         # of the input."
         output, (hidden_state, cell_state) = self.lstm(x)
-        affined = self.dense(hidden_state)
+        affined = self.dense(output[-1, :, :].unsqueeze(0))
         return F.softmax(affined, 2)
 
     def get_init_h(self, batch_size, seq_len):
